@@ -1,0 +1,139 @@
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import * as Location from 'expo-location';
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+
+const API_URL = 'https://api.openweathermap.org/data/2.5/weather'
+const API_KEY = '7d4be018f660de6ac6030a60bd08f558'
+
+export default function App() {
+  const [weather, setWeather] = useState(null);
+
+  useEffect(() => {
+    getLocation();
+  }, []);
+
+  async function getLocation() {
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      console.log('Permission to access location was denied');
+      return;
+    }
+
+    let location = await Location.getCurrentPositionAsync({});
+    const response = await axios.get(API_URL, {
+      params: {
+        lat: location.coords.latitude,
+        lon: location.coords.longitude,
+        appid: API_KEY,
+        units: 'metric',
+        lang: 'pt_br'
+      }
+    });
+    setWeather(response.data);
+  }
+
+  const getBackgroundColor = () => {
+    if (!weather) return '#6495ED'; // cor padrão quando não há dados
+    const main = weather.weather[0].main.toLowerCase();
+    if(main.includes('rain')) return '#4A7C8E';
+    if(main.includes('cloud')) return '#8B95A1';
+    if(main.includes('clear')) return '#87CEEB';
+    return '#6495ED';
+  };
+
+  return (
+    <View style={[styles.container, {backgroundColor: getBackgroundColor()}]}>
+      {weather ? (
+        <View>
+          <Text style ={styles.cityName}>{weather.name}</Text>
+          <Text style = {styles.temperature}>{Math.round(weather.main.temp)}°C</Text>
+          <Text style = {styles.description}>{weather.weather[0].description}</Text>
+  
+          <View style = {styles.infoContainer}>
+            
+            <View style = {styles.infoBox}>
+              <Text style = {styles.infoLabel}>Sensação</Text>
+              <Text style = {styles.infoValue}>{Math.round(weather.main.feels_like)}°C</Text>
+            </View>
+            
+            <View style = {styles.infoBox}>
+              <Text style = {styles.infoLabel}>Umidade</Text>
+              <Text style = {styles.infoValue}>{Math.round(weather.main.humidity)}%</Text>
+            </View>
+            
+            <View style = {styles.infoBox}>
+              <Text style = {styles.infoLabel}>Vento</Text>
+              <Text style = {styles.infoValue}>{weather.wind.speed} m/s</Text>
+            </View>
+          </View>
+        </View>
+      ) : (
+        <Text>Carregando...</Text>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    width: '100%',
+  },
+  cityName: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+
+  temperature: {
+    fontSize: 72,
+    fontWeight: '300',
+    color: '#fff',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+
+  description: {
+    fontSize: 24,
+    color: '#fff',
+    marginBottom: 40,
+    textTransform: 'capitalize',
+    textAlign: 'center',
+  },
+
+  infoContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    gap: 20,
+  },
+
+  infoBox: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    padding: 15,
+    borderRadius: 10,
+    minWidth: 80
+  },
+
+  infoLabel: {
+    fontSize: 14,
+    color: '#fff',
+    opacity: 0.8,
+    marginBottom: 5,
+    fontWeight: 'bold',
+  },
+
+  infoValue: {
+    fontSize: 20,
+    color: '#fff',
+    fontWeight: 'bold'
+  }
+});
